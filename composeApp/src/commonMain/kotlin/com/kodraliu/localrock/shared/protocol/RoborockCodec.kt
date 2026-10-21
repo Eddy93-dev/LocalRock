@@ -5,11 +5,8 @@ import com.kodraliu.localrock.shared.crypto.Aes128
 class RoborockProtocolException(message: String) : RuntimeException(message)
 
 
-class RoborockCodec(
-    private val localKey: String,
-    private val prefixed: Boolean,
-) {
-    private var buffer = ByteArray(0)
+/** MQTT framing: one or more frames back to back, no length prefix. */
+class RoborockCodec(private val localKey: String) {
 
     fun encode(message: RoborockMessage): ByteArray {
         require(message.version == "1.0") { "Only version 1.0 is implemented (got ${message.version})" }
@@ -23,13 +20,8 @@ class RoborockCodec(
         val headerLen = 3 + 4 + 4 + 4 + 2 + 2
         val bodyLen = headerLen + encryptedPayload.size
         val totalLen = bodyLen + 4 // body + CRC
-        val frame = ByteArray(if (prefixed) 4 + totalLen else totalLen)
+        val frame = ByteArray(totalLen)
         var off = 0
-        if (prefixed) {
-            // python-roborock's PrefixedStruct writes (body + CRC) — i.e., everything that follows the prefix.
-            putIntBe(frame, off, totalLen); off += 4
-        }
-        val bodyStart = off
         message.version.encodeToByteArray().copyInto(frame, off); off += 3
         putIntBe(frame, off, message.seq); off += 4
         putIntBe(frame, off, message.random); off += 4
@@ -37,51 +29,24 @@ class RoborockCodec(
         putShortBe(frame, off, message.protocol); off += 2
         putShortBe(frame, off, encryptedPayload.size); off += 2
         encryptedPayload.copyInto(frame, off); off += encryptedPayload.size
-        val crc = Crc32.compute(frame, bodyStart, bodyLen)
+        val crc = Crc32.compute(frame, 0, bodyLen)
         putIntBe(frame, off, crc)
         return frame
     }
 
 
-    fun decode(bytesIn: ByteArray): List<RoborockMessage> {
-        buffer = if (buffer.isEmpty()) bytesIn.copyOf() else buffer + bytesIn
+    fun decode(bytes: ByteArray): List<RoborockMessage> {
         val out = mutableListOf<RoborockMessage>()
+        var pos = 0
         while (true) {
-            val parsed = tryParseOne(buffer) ?: break
-            buffer = parsed.remaining
-            out += parsed.message
+            val versionStart = findVersionHeader(bytes, pos) ?: break
+            if (bytes.size - versionStart < 19) break
+            val bodyLen = 19 + readShortBe(bytes, versionStart + 17)
+            if (bytes.size - versionStart < bodyLen + 4) break
+            out += parseMessage(bytes, versionStart, bodyLen)
+            pos = versionStart + bodyLen + 4
         }
         return out
-    }
-
-    private data class ParseResult(val message: RoborockMessage, val remaining: ByteArray)
-
-    private fun tryParseOne(data: ByteArray): ParseResult? {
-        var pos = 0
-        if (prefixed) {
-            if (data.size < 4) return null
-            val payloadAndCrcLen = readIntBe(data, 0) // body + CRC, per python-roborock
-            if (payloadAndCrcLen < 23 || payloadAndCrcLen > 16 * 1024 * 1024) {
-                throw RoborockProtocolException("Implausible message length: $payloadAndCrcLen")
-            }
-            if (data.size < 4 + payloadAndCrcLen) return null
-            pos = 4
-            val bodyLen = payloadAndCrcLen - 4
-            val msg = parseMessage(data, pos, bodyLen)
-            val end = 4 + payloadAndCrcLen
-            val remaining = if (data.size == end) ByteArray(0) else data.copyOfRange(end, data.size)
-            return ParseResult(msg, remaining)
-        }
-
-        val versionStart = findVersionHeader(data, 0) ?: return null
-        if (data.size - versionStart < 19) return null
-        val payloadLen = readShortBe(data, versionStart + 17)
-        val bodyLen = 19 + payloadLen
-        if (data.size - versionStart < bodyLen + 4) return null
-        val msg = parseMessage(data, versionStart, bodyLen)
-        val end = versionStart + bodyLen + 4
-        val remaining = if (data.size == end) ByteArray(0) else data.copyOfRange(end, data.size)
-        return ParseResult(msg, remaining)
     }
 
     private fun parseMessage(data: ByteArray, off: Int, bodyLen: Int): RoborockMessage {

@@ -115,7 +115,7 @@ class VacuumSession(
         mutex.withLock { pending[requestId] = request }
         try {
             val v1Payload = V1Envelope.encodeRequestRaw(requestId, method, params, ts)
-            val frame = RoborockCodec(localKey, prefixed = false).encode(
+            val frame = RoborockCodec(localKey).encode(
                 RoborockMessage(
                     protocol = RoborockProtocol.RPC_REQUEST,
                     payload = v1Payload,
@@ -190,7 +190,7 @@ class VacuumSession(
                 timestamp = ts,
                 extraInner = mapOf("security" to securityJson),
             )
-            val frame = RoborockCodec(localKey, prefixed = false).encode(
+            val frame = RoborockCodec(localKey).encode(
                 RoborockMessage(
                     protocol = RoborockProtocol.RPC_REQUEST,
                     payload = v1Payload,
@@ -208,7 +208,7 @@ class VacuumSession(
 
     private suspend fun handleIncoming(bytes: ByteArray) {
         val msgs = try {
-            RoborockCodec(localKey, prefixed = false).decode(bytes)
+            RoborockCodec(localKey).decode(bytes)
         } catch (e: Exception) {
             // A wrong local key fails the AES padding check and a non-1.0 frame fails the version
             // check, both with IllegalArgumentException; letting either escape kills the collector.

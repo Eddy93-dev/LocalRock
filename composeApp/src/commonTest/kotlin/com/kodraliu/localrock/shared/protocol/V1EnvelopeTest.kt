@@ -92,11 +92,11 @@ class V1EnvelopeTest {
         // Encode an app_start request, frame it, decrypt+decode, and re-parse the inner envelope.
         val localKey = "0123456789abcdef"
         val ts = 0x65f3a200
-        val codec = RoborockCodec(localKey, prefixed = false)
+        val codec = RoborockCodec(localKey)
         val reqPayload = V1Envelope.encodeRequest(requestId = 1, method = "app_start", timestamp = ts)
         val msg = RoborockMessage(RoborockProtocol.RPC_REQUEST, reqPayload, seq = 1, random = 2, timestamp = ts)
         val frame = codec.encode(msg)
-        val decoded = RoborockCodec(localKey, prefixed = false).decode(frame)
+        val decoded = RoborockCodec(localKey).decode(frame)
         assertEquals(1, decoded.size)
         val inner = decoded[0].payload.decodeToString()
         assertEquals(reqPayload.decodeToString(), inner)

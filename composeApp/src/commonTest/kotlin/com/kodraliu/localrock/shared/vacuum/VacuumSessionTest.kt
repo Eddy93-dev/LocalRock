@@ -65,7 +65,7 @@ class VacuumSessionTest {
     }
 
     private fun requestId(frame: ByteArray): Int {
-        val outer = Json.parseToJsonElement(RoborockCodec(key, prefixed = false).decode(frame).single().payload.decodeToString())
+        val outer = Json.parseToJsonElement(RoborockCodec(key).decode(frame).single().payload.decodeToString())
         val inner = Json.parseToJsonElement(outer.jsonObject["dps"]!!.jsonObject["101"]!!.jsonPrimitive.content)
         return inner.jsonObject["id"]!!.jsonPrimitive.int
     }
@@ -79,7 +79,7 @@ class VacuumSessionTest {
             put("dps", buildJsonObject { put("102", inner) })
             put("t", 1)
         }.toString().encodeToByteArray()
-        return RoborockCodec(localKey, prefixed = false).encode(
+        return RoborockCodec(localKey).encode(
             RoborockMessage(RoborockProtocol.RPC_RESPONSE, payload, seq = 1, random = 1, timestamp = 0x65f3a200)
         )
     }
