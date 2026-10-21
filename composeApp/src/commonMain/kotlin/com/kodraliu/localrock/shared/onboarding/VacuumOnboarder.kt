@@ -35,8 +35,8 @@ class VacuumOnboarder(
                 timezone = input.timezone,
                 posixTz = posixTzFromIana(input.timezone),
                 countryDomain = countryDomainFromIana(input.timezone),
-                tokenS = "S_TOKEN_" + bytesToHex(secureRandomBytes(16)),
-                tokenT = "T_TOKEN_" + bytesToHex(secureRandomBytes(16)),
+                tokenS = "S_TOKEN_" + secureRandomBytes(16).toHexString(),
+                tokenT = "T_TOKEN_" + secureRandomBytes(16).toHexString(),
             )
             _step.value = Step.SendingWifiConfig
             transport.sendUdp(VACUUM_PAIRING_HOST, VACUUM_PAIRING_PORT, buildWifiConfigPacket(sessionKey, body))
@@ -50,19 +50,9 @@ class VacuumOnboarder(
         }
     }
 
-    private fun bytesToHex(b: ByteArray): String {
-        val sb = StringBuilder(b.size * 2)
-        for (byte in b) {
-            val v = byte.toInt() and 0xff
-            sb.append(HEX[v ushr 4]); sb.append(HEX[v and 0x0f])
-        }
-        return sb.toString()
-    }
-
     private companion object {
         const val HELLO_TIMEOUT_MS: Long = 5_000L
         const val WIFI_ACK_TIMEOUT_MS: Long = 5_000L
-        val HEX = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
     }
 }
 

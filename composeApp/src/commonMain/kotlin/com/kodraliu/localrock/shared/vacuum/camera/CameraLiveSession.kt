@@ -320,16 +320,7 @@ class CameraLiveSession(private val session: VacuumSession) {
         private fun errorCode(error: JsonObject?): Int? =
             error?.get("code")?.jsonPrimitive?.intOrNull
 
-        fun md5Hex(input: String): String {
-            val digest = MD5().digest(input.encodeToByteArray())
-            val sb = StringBuilder(digest.size * 2)
-            for (b in digest) {
-                val v = b.toInt() and 0xff
-                sb.append("0123456789abcdef"[v ushr 4])
-                sb.append("0123456789abcdef"[v and 0x0f])
-            }
-            return sb.toString()
-        }
+        fun md5Hex(input: String): String = MD5().digest(input.encodeToByteArray()).toHexString()
 
         fun firstObject(result: JsonElement?): JsonObject? = when (result) {
             is JsonObject -> result

@@ -43,18 +43,4 @@ private fun parseMqttUrl(url: String): ParsedMqttUrl {
     return ParsedMqttUrl(host = host, port = port, tls = scheme == "ssl")
 }
 
-private fun md5Hex(input: String): String {
-    val digest = MD5().digest(input.encodeToByteArray())
-    val sb = StringBuilder(digest.size * 2)
-    for (b in digest) {
-        val v = b.toInt() and 0xff
-        sb.append(HEX[v ushr 4])
-        sb.append(HEX[v and 0x0f])
-    }
-    return sb.toString()
-}
-
-private val HEX = charArrayOf(
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-)
+private fun md5Hex(input: String): String = MD5().digest(input.encodeToByteArray()).toHexString()

@@ -999,10 +999,7 @@ class VacuumRepository(
             }
             applyRoomNames()
             if (parsed == null) {
-                val first8 = resp.data.take(8).joinToString("") {
-                    val v = it.toInt() and 0xff
-                    "${HEX[v ushr 4]}${HEX[v and 0x0f]}"
-                }
+                val first8 = resp.data.copyOf(minOf(8, resp.data.size)).toHexString()
                 // One file per robot, overwritten: the map is re-fetched every few seconds.
                 val savedPath = saveDebugBlob("vaclocal-map-$duid.bin", resp.data)
                 val saved = savedPath?.let { " • saved → $it" } ?: ""
@@ -1019,7 +1016,6 @@ class VacuumRepository(
     }
 
     private companion object {
-        val HEX = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
         val ConsumableJson = Json { ignoreUnknownKeys = true; explicitNulls = false }
         const val MAP_FAST_POLL_MS = 8_000L
         const val MAP_IDLE_POLL_MS = 60_000L

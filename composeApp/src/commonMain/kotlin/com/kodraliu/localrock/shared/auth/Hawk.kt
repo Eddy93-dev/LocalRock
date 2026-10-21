@@ -63,24 +63,10 @@ object Hawk {
 private fun formEncode(pairs: Map<String, String>): String =
     pairs.entries.sortedBy { it.key }.joinToString("&") { "${it.key}=${it.value}" }
 
-private fun md5Hex(bytes: ByteArray): String {
-    val digest = MD5().digest(bytes)
-    val sb = StringBuilder(digest.size * 2)
-    for (b in digest) {
-        val v = b.toInt() and 0xFF
-        sb.append(HEX[v ushr 4])
-        sb.append(HEX[v and 0x0F])
-    }
-    return sb.toString()
-}
+private fun md5Hex(bytes: ByteArray): String = MD5().digest(bytes).toHexString()
 
 private fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray =
     HmacSHA256(key).doFinal(data)
 
 @OptIn(ExperimentalEncodingApi::class)
 private fun base64(bytes: ByteArray): String = Base64.encode(bytes)
-
-private val HEX = charArrayOf(
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-)
