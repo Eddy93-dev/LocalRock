@@ -80,7 +80,7 @@ class DeviceRepository(
             _home.value = home
             _devicesFlow.value = home.devices
             val productsByDeviceId = home.products.associateBy { it.id }
-            _products.value = home.devices.associate { it.duid to productsByDeviceId[it.productId]!! }
+            _products.value = home.devices.mapNotNull { d -> productsByDeviceId[d.productId]?.let { d.duid to it } }.toMap()
             return
         }
         val token = authRepository.token() ?: error("Not logged in")
@@ -94,7 +94,7 @@ class DeviceRepository(
         _home.value = home
         _devicesFlow.value = home.devices
         val productsByDeviceId = home.products.associateBy { it.id }
-        _products.value = home.devices.associate { it.duid to productsByDeviceId[it.productId]!! }
+        _products.value = home.devices.mapNotNull { d -> productsByDeviceId[d.productId]?.let { d.duid to it } }.toMap()
     }
 
     /** Create (or look up by name) a cloud room in the current home. */
