@@ -1001,7 +1001,8 @@ class VacuumRepository(
                     val v = it.toInt() and 0xff
                     "${HEX[v ushr 4]}${HEX[v and 0x0f]}"
                 }
-                val savedPath = saveDebugBlob("vaclocal-map-${duid}-${nowEpochSeconds()}.bin", resp.data)
+                // One file per robot, overwritten: the map is re-fetched every few seconds.
+                val savedPath = saveDebugBlob("vaclocal-map-$duid.bin", resp.data)
                 val saved = savedPath?.let { " • saved → $it" } ?: ""
                 _mapStatus.value = "ok: $sizeKb KB, no parser matched — head=$first8$saved"
             } else {
