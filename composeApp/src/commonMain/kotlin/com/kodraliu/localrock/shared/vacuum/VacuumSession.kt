@@ -9,6 +9,7 @@ import com.kodraliu.localrock.shared.protocol.V1Envelope
 import com.kodraliu.localrock.shared.protocol.V1Response
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -80,7 +81,9 @@ class VacuumSession(
         val topic = topics.subscribeTopic
         mqtt.subscribe(topic)
         subscribedTopic = topic
-        collectorJob = scope.launch {
+        // Undispatched so the collector is listening before start() returns: messages does not
+        // replay, and a reply to a command sent right after would otherwise be lost.
+        collectorJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             mqtt.messages.collect { msg ->
                 if (msg.topic == subscribedTopic) {
                     println("[VacLocal] mqtt in: topic=${msg.topic} bytes=${msg.payload.size}")
