@@ -240,7 +240,9 @@ class VacuumRepository(
         pollJob?.cancel(); pollJob = null
         dpsJob?.cancel(); dpsJob = null
         mapPollJob?.cancel(); mapPollJob = null
-        scope.launch { session.close() }
+        // Cancel the scope last: it also runs the eager stateIn flows, which would otherwise keep
+        // this repository, and its last map, alive after the screen is gone.
+        scope.launch { session.close() }.invokeOnCompletion { scope.cancel() }
     }
 
     suspend fun pause(): V1Response = session.appPause()
