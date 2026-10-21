@@ -7,6 +7,7 @@ import kotlinx.cinterop.convert
 import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
 import platform.Foundation.NSDocumentDirectory
+import platform.Foundation.NSFileManager
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSString
 import platform.Foundation.NSUserDomainMask
@@ -29,6 +30,13 @@ internal actual fun secureRandomBytes(size: Int): ByteArray {
 actual fun saveDebugBlob(name: String, bytes: ByteArray): String? {
     val paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, true)
     val dir = paths.firstOrNull() as? String ?: return null
+    // Older builds saved every copy as "<stem>-<timestamp>.<ext>" and never deleted any.
+    val stem = name.substringBeforeLast('.')
+    val ext = name.substringAfterLast('.')
+    val fm = NSFileManager.defaultManager
+    fm.contentsOfDirectoryAtPath(dir, null)?.filterIsInstance<String>()
+        ?.filter { it.startsWith("$stem-") && it.endsWith(".$ext") }
+        ?.forEach { fm.removeItemAtPath((dir as NSString).stringByAppendingPathComponent(it), null) }
     val path = (dir as NSString).stringByAppendingPathComponent(name)
     bytes.usePinned { pinned ->
         val data = NSData.create(bytes = pinned.addressOf(0), length = bytes.size.convert())
