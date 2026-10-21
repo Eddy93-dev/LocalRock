@@ -5,7 +5,6 @@ import com.kodraliu.localrock.shared.mqtt.MqttTopics
 import com.kodraliu.localrock.shared.protocol.RoborockCodec
 import com.kodraliu.localrock.shared.protocol.RoborockMessage
 import com.kodraliu.localrock.shared.protocol.RoborockProtocol
-import com.kodraliu.localrock.shared.protocol.RoborockProtocolException
 import com.kodraliu.localrock.shared.protocol.V1Envelope
 import com.kodraliu.localrock.shared.protocol.V1Response
 import kotlinx.coroutines.CompletableDeferred
@@ -210,7 +209,9 @@ class VacuumSession(
     private suspend fun handleIncoming(bytes: ByteArray) {
         val msgs = try {
             RoborockCodec(localKey, prefixed = false).decode(bytes)
-        } catch (e: RoborockProtocolException) {
+        } catch (e: Exception) {
+            // A wrong local key fails the AES padding check and a non-1.0 frame fails the version
+            // check, both with IllegalArgumentException; letting either escape kills the collector.
             println("[VacLocal] decode FAILED (localKey mismatch?): ${e.message}")
             return
         }
