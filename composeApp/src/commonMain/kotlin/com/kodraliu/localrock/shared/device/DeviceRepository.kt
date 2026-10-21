@@ -75,14 +75,14 @@ class DeviceRepository(
     }
 
     suspend fun refresh() {
-        if (isDemo()) {
-            val home = DemoData.home
-            _home.value = home
-            _devicesFlow.value = home.devices
-            val productsByDeviceId = home.products.associateBy { it.id }
-            _products.value = home.devices.mapNotNull { d -> productsByDeviceId[d.productId]?.let { d.duid to it } }.toMap()
-            return
-        }
+        val home = if (isDemo()) DemoData.home else fetchHome()
+        _home.value = home
+        _devicesFlow.value = home.devices
+        val productsByDeviceId = home.products.associateBy { it.id }
+        _products.value = home.devices.mapNotNull { d -> productsByDeviceId[d.productId]?.let { d.duid to it } }.toMap()
+    }
+
+    private suspend fun fetchHome(): Home {
         val token = authRepository.token() ?: error("Not logged in")
         // NOTE: do NOT call /nc/prepare here. It's an onboarding-only ("network config prepare")
         // endpoint; calling it on every refresh made local_roborock_server fabricate a phantom
@@ -90,11 +90,7 @@ class DeviceRepository(
         // as a ghost vacuum in the device list. The result was discarded anyway.
         val detail = deviceApi.getHomeDetail(token)
         val homeId = detail.resolvedHomeId ?: error("Server did not return a home id")
-        val home = deviceApi.getHome(homeId)
-        _home.value = home
-        _devicesFlow.value = home.devices
-        val productsByDeviceId = home.products.associateBy { it.id }
-        _products.value = home.devices.mapNotNull { d -> productsByDeviceId[d.productId]?.let { d.duid to it } }.toMap()
+        return deviceApi.getHome(homeId)
     }
 
     /** Create (or look up by name) a cloud room in the current home. */
