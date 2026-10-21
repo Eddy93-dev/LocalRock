@@ -15,13 +15,8 @@ import io.ktor.client.request.parameter
 import io.ktor.http.parameters
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
-import kotlinx.serialization.json.JsonElement
 
 class DeviceApi(private val client: HttpClient) {
-
-
-    suspend fun ncPrepare(): JsonElement = client.get("/nc/prepare").body()
-
 
     suspend fun getHomeDetail(token: String): HomeDetail {
         val response: ApiResponse<HomeDetail> = client.get("/api/v1/getHomeDetail") {
